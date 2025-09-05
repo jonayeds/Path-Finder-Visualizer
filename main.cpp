@@ -6,6 +6,13 @@ using namespace sf;
 int main()
 {
     RenderWindow win(VideoMode({1200, 800}), "Path Finder");
+    Image icon;
+    if (icon.loadFromFile("./images/icon.jpg")) {
+        win.setIcon(icon);
+    }
+
+
+
     RectangleShape box;
     RectangleShape playBtn;
     int boxSize= 15;
