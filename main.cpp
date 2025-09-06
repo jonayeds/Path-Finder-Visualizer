@@ -21,6 +21,7 @@ vector<vector<Box>> boxList(40);
 Box start;
 Box finish;
 
+
 class Algorithms
 {
 
@@ -31,15 +32,12 @@ public:
         int rows = boxList.size();
         int cols = boxList[0].size();
         queue<Box> q;
-        vector<vector<bool>> visited(rows, vector<bool>(cols, false));
+        // vector<vector<bool>> visited(rows, vector<bool>(cols, false));
 
         int nextRows[] = {1, -1, 0, 0};
         int nextCols[] = {0, 0, 1, -1};
 
         q.push(start);
-        visited[start.row][start.col] = true;
-        boxList[start.row][start.col].parentRow = -1;
-        boxList[start.row][start.col].parentCol = -1;
         start.isVisited = true;
 
         bool isFound = false;
@@ -48,6 +46,8 @@ public:
         {
             Box current = q.front();
             q.pop();
+
+
 
             if (current.row == finish.row && current.col == finish.col)
             {
@@ -61,15 +61,17 @@ public:
                 int nextRow = current.row + nextRows[i];
                 int nextCol = current.col + nextCols[i];
 
-                if (nextRow >= 0 && nextRow < rows && nextCol >= 0 && nextCol < cols && boxList[nextRow][nextCol].isEmpty && !visited[nextRow][nextCol])
+                if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) {
+                    continue;
+                }
+                
+                if (boxList[nextRow][nextCol].isEmpty && !boxList[nextRow][nextCol].isVisited)
                 {
-                    visited[nextRow][nextCol] = true;
                     boxList[nextRow][nextCol].isVisited = true;
                     boxList[nextRow][nextCol].parentRow = current.row;
                     boxList[nextRow][nextCol].parentCol = current.col;
                     q.push(boxList[nextRow][nextCol]);
 
-                    // Animation: redraw the grid after each node is visited
                     win.clear();
                     for (int r = 0; r < 40; r++)
                     {
@@ -111,24 +113,23 @@ public:
                     txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
                     win.draw(txt);
                     win.display();
-                    sf::sleep(sf::milliseconds(2)); // Add delay for animation
+                    sf::sleep(sf::milliseconds(2)); 
                 }
             }
         }
 
         vector<Box> path;
+        boxList[start.row][start.col].parentRow = -1;
+        boxList[start.row][start.col].parentCol = -1;
         if (isFound)
         {
             Box current = finish;
-            int count = 0;
-            while (current.parentRow != -1)
+            while (current.parentRow != -1 && path.size() < 2000)
             {
                 path.push_back(current);
                 boxList[current.row][current.col].isPath = true;
                 current = boxList[current.parentRow][current.parentCol];
-                count++;
-
-                // Animation: redraw the grid after each path node is marked
+                cout << current.parentRow << " | " << current.parentCol << endl;
                 win.clear();
                 for (int r = 0; r < 40; r++)
                 {
@@ -217,6 +218,18 @@ int main()
     bool isStartSelected = false;
     bool isFinishSelected = false;
 
+    // Initialize the boxList once
+    for (int i = 0; i < 40; i++)
+    {
+        boxList[i].clear(); // Clear any existing data
+        for (int j = 0; j < 50; j++)
+        {
+            int x = boxSize * (j + 2);
+            int y = boxSize * (i + 2);
+            boxList[i].push_back({x, y, true, -1, -1, i, j, false, false});
+        }
+    }
+
     string time = "0";
     while (win.isOpen())
     {
@@ -229,15 +242,14 @@ int main()
                 win.close();
             }
             win.clear();
+            
+            // Handle mouse interactions with existing boxes
             for (int i = 0; i < 40; i++)
             {
-
                 for (int j = 0; j < 50; j++)
                 {
-                    int x = boxSize * (j + 2);
-                    int y = boxSize * (i + 2);
-                    boxList[i].push_back({x, y, true, -1, -1, i, j, false, false});
-                    if (mo.x > x && mo.y > y && mo.x < x + boxSize && mo.y < y + boxSize)
+                    if (mo.x > boxList[i][j].x && mo.y > boxList[i][j].y && 
+                        mo.x < boxList[i][j].x + boxSize && mo.y < boxList[i][j].y + boxSize)
                     {
                         if (Mouse::isButtonPressed(Mouse::Button::Left))
                         {
@@ -245,14 +257,14 @@ int main()
                             bool isFinishNode = boxList[i][j].x == finish.x && boxList[i][j].y == finish.y;
                             if (!isStartSelected)
                             {
-                                start = {x, y, true, -1, -1, i, j, false, false};
+                                start = boxList[i][j];
                                 isStartSelected = true;
                                 cout << "Start node selected i:" << i << " j:" << j << endl;
                                 continue;
                             }
                             if (!isFinishSelected && !isStartNode)
                             {
-                                finish = {x, y, true, -1, -1, i, j, false, false};
+                                finish = boxList[i][j];
                                 isFinishSelected = true;
                                 cout << "Finish node selected i:" << i << " j:" << j << endl;
                                 continue;
