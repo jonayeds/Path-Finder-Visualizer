@@ -25,7 +25,7 @@ class Algorithms
 {
 
 public:
-    void applyBFS(RenderWindow& win, RectangleShape& box, int boxSize, bool isStartSelected, bool isFinishSelected)
+    string applyBFS(Text txt, Clock clock, string time, RenderWindow &win, RectangleShape &box, int boxSize, bool isStartSelected, bool isFinishSelected)
     {
 
         int rows = boxList.size();
@@ -38,17 +38,17 @@ public:
 
         q.push(start);
         visited[start.row][start.col] = true;
-        boxList[start.row][start.col].parentRow =-1;
-        boxList[start.row][start.col].parentCol =-1;
-        start.isVisited=true;
-        
+        boxList[start.row][start.col].parentRow = -1;
+        boxList[start.row][start.col].parentCol = -1;
+        start.isVisited = true;
+
         bool isFound = false;
-        
+
         while (!q.empty())
         {
             Box current = q.front();
             q.pop();
-            
+
             if (current.row == finish.row && current.col == finish.col)
             {
                 finish = current;
@@ -68,7 +68,7 @@ public:
                     boxList[nextRow][nextCol].parentRow = current.row;
                     boxList[nextRow][nextCol].parentCol = current.col;
                     q.push(boxList[nextRow][nextCol]);
-                    
+
                     // Animation: redraw the grid after each node is visited
                     win.clear();
                     for (int r = 0; r < 40; r++)
@@ -93,7 +93,8 @@ public:
                                 box.setFillColor(Color(50, 73, 97));
                                 win.draw(box);
                             }
-                            else if(boxList[r][c].isVisited){
+                            else if (boxList[r][c].isVisited)
+                            {
                                 box.setFillColor(Color(75, 156, 237));
                                 win.draw(box);
                             }
@@ -104,22 +105,29 @@ public:
                             }
                         }
                     }
+                    float timeCount = clock.getElapsedTime().asSeconds();
+                    time = to_string(timeCount);
+                    txt.setString(time);
+                    txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
+                    win.draw(txt);
                     win.display();
-                    sf::sleep(sf::milliseconds(5)); // Add delay for animation
+                    sf::sleep(sf::milliseconds(2)); // Add delay for animation
                 }
             }
         }
 
         vector<Box> path;
-        if(isFound){
+        if (isFound)
+        {
             Box current = finish;
-            int count =0;
-            while(current.parentRow != -1){
+            int count = 0;
+            while (current.parentRow != -1)
+            {
                 path.push_back(current);
                 boxList[current.row][current.col].isPath = true;
                 current = boxList[current.parentRow][current.parentCol];
                 count++;
-                
+
                 // Animation: redraw the grid after each path node is marked
                 win.clear();
                 for (int r = 0; r < 40; r++)
@@ -143,11 +151,14 @@ public:
                         {
                             box.setFillColor(Color(50, 73, 97));
                             win.draw(box);
-                        }else if(boxList[r][c].isVisited && boxList[r][c].isPath){
+                        }
+                        else if (boxList[r][c].isVisited && boxList[r][c].isPath)
+                        {
                             box.setFillColor(Color::Yellow);
                             win.draw(box);
                         }
-                        else if(boxList[r][c].isVisited){
+                        else if (boxList[r][c].isVisited)
+                        {
                             box.setFillColor(Color(75, 156, 237));
                             win.draw(box);
                         }
@@ -158,11 +169,15 @@ public:
                         }
                     }
                 }
+                txt.setString(time);
+                txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
+                win.draw(txt);
                 win.display();
-                sf::sleep(sf::milliseconds(200)); // Slower delay for path visualization
+                sf::sleep(sf::milliseconds(100)); // Slower delay for path visualization
             }
-            path.push_back(start);   
+            path.push_back(start);
         }
+        return time;
     }
 };
 
@@ -170,12 +185,12 @@ int main()
 {
     RenderWindow win(VideoMode({1200, 800}), "Path Finder");
     Image icon;
-    if (icon.loadFromFile("./images/icon.jpg"))
+    if (icon.loadFromFile("/Users/sajjad/University/SFML/Path-Finder/images/icon.jpg"))
     {
         win.setIcon(icon);
     }
 
-    Algorithms* algo = new Algorithms();
+    Algorithms *algo = new Algorithms();
 
     RectangleShape box;
     RectangleShape button;
@@ -189,7 +204,7 @@ int main()
 
     Font fnt;
     Text txt(fnt);
-    if (fnt.openFromFile("./fonts/primary.ttf"))
+    if (fnt.openFromFile("/Users/sajjad/University/SFML/Path-Finder/fonts/primary.ttf"))
     {
         txt.setCharacterSize(24);
         txt.setOutlineThickness(1);
@@ -202,6 +217,7 @@ int main()
     bool isStartSelected = false;
     bool isFinishSelected = false;
 
+    string time = "0";
     while (win.isOpen())
     {
         mo = Mouse::getPosition(win);
@@ -273,11 +289,14 @@ int main()
                     {
                         box.setFillColor(Color(50, 73, 97));
                         win.draw(box);
-                    }else if(boxList[i][j].isVisited && boxList[i][j].isPath){
+                    }
+                    else if (boxList[i][j].isVisited && boxList[i][j].isPath)
+                    {
                         box.setFillColor(Color::Yellow);
                         win.draw(box);
                     }
-                    else if(boxList[i][j].isVisited){
+                    else if (boxList[i][j].isVisited)
+                    {
                         box.setFillColor(Color(75, 156, 237));
                         win.draw(box);
                     }
@@ -288,7 +307,6 @@ int main()
                     }
                 }
             }
-
 
             // Reset Button
             if (mo.x >= boxSize * 55 && mo.y >= boxSize * 2 && mo.x <= (boxSize * 55 + 100) && mo.y <= (boxSize * 2 + 60))
@@ -311,29 +329,31 @@ int main()
                 }
             }
 
+            Clock clock;
             // play button
             if (mo.x >= boxSize * 65 && mo.y >= boxSize * 2 && mo.x <= (boxSize * 65 + 100) && mo.y <= (boxSize * 2 + 60))
             {
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
                 {
-                    algo->applyBFS(win, box, boxSize, isStartSelected, isFinishSelected);
+                    time = algo->applyBFS(txt, clock, time, win, box, boxSize, isStartSelected, isFinishSelected);
                 }
             }
-
 
             button.setPosition(Vector2f(boxSize * 55, boxSize * 2));
             txt.setPosition(Vector2f(boxSize * 55 + 25, boxSize * 2 + 15));
             txt.setString("Reset");
             win.draw(button);
             win.draw(txt);
-            
-            button.setPosition(Vector2f(boxSize * 65 , boxSize * 2));
+
+            button.setPosition(Vector2f(boxSize * 65, boxSize * 2));
             txt.setPosition(Vector2f(boxSize * 65 + 25, boxSize * 2 + 15));
             txt.setString("Play");
             win.draw(button);
             win.draw(txt);
 
-
+            txt.setString(time);
+            txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
+            win.draw(txt);
 
             win.display();
         }
