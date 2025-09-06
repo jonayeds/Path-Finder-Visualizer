@@ -13,6 +13,7 @@ struct Box
     int row;
     int col;
     bool isVisited;
+    bool isPath;
 };
 
 vector<vector<Box>> boxList(40);
@@ -45,7 +46,6 @@ public:
         {
             Box current = q.front();
             q.pop();
-            cout << current.row << " | " << current.col << endl;
 
             if (current.row == finish.row && current.col == finish.col)
             {
@@ -59,15 +59,26 @@ public:
                 int nextRow = current.row + nextRows[i];
                 int nextCol = current.col + nextCols[i];
 
-                if (nextRow >= 0 && nextRow < rows && nextCol >= 0 && nextCol < cols && boxList[nextRow][nextCol].isEmpty && !visited[nextCol][nextRow])
+                if (nextRow >= 0 && nextRow < rows && nextCol >= 0 && nextCol < cols && boxList[nextRow][nextCol].isEmpty && !visited[nextRow][nextCol])
                 {
-                    visited[nextCol][nextRow] = true;
-                    boxList[nextCol][nextRow].isVisited = true;
+                    visited[nextRow][nextCol] = true;
+                    boxList[nextRow][nextCol].isVisited = true;
                     boxList[nextRow][nextCol].parentRow = current.row;
                     boxList[nextRow][nextCol].parentCol = current.col;
                     q.push(boxList[nextRow][nextCol]);
                 }
             }
+        }
+
+        vector<Box> path;
+        if(isFound){
+            Box current = finish;
+            while(current.parentRow != -1){
+                path.push_back(current);
+                boxList[current.row][current.col].isPath = true;
+                current = boxList[current.parentRow][current.parentCol];
+            }
+            path.push_back(start);   
         }
     }
 };
@@ -126,7 +137,7 @@ int main()
                 {
                     int x = boxSize * (j + 2);
                     int y = boxSize * (i + 2);
-                    boxList[i].push_back({x, y, true, -1, -1, i, j, false});
+                    boxList[i].push_back({x, y, true, -1, -1, i, j, false, false});
                     if (mo.x > x && mo.y > y && mo.x < x + boxSize && mo.y < y + boxSize)
                     {
                         if (Mouse::isButtonPressed(Mouse::Button::Left))
@@ -135,14 +146,14 @@ int main()
                             bool isFinishNode = boxList[i][j].x == finish.x && boxList[i][j].y == finish.y;
                             if (!isStartSelected)
                             {
-                                start = {x, y, true, -1, -1, i, j, false};
+                                start = {x, y, true, -1, -1, i, j, false, false};
                                 isStartSelected = true;
                                 cout << "Start node selected i:" << i << " j:" << j << endl;
                                 continue;
                             }
                             if (!isFinishSelected && !isStartNode)
                             {
-                                finish = {x, y, true, -1, -1, i, j, false};
+                                finish = {x, y, true, -1, -1, i, j, false, false};
                                 isFinishSelected = true;
                                 cout << "Finish node selected i:" << i << " j:" << j << endl;
                                 continue;
@@ -179,7 +190,11 @@ int main()
                     {
                         box.setFillColor(Color(50, 73, 97));
                         win.draw(box);
-                    }else if(boxList[i][j].isVisited){
+                    }else if(boxList[i][j].isVisited && boxList[i][j].isPath){
+                        box.setFillColor(Color::Yellow);
+                        win.draw(box);
+                    }
+                    else if(boxList[i][j].isVisited){
                         box.setFillColor(Color(75, 156, 237));
                         win.draw(box);
                     }
@@ -191,6 +206,8 @@ int main()
                 }
             }
 
+
+            // Reset Button
             if (mo.x >= boxSize * 55 && mo.y >= boxSize * 2 && mo.x <= (boxSize * 55 + 100) && mo.y <= (boxSize * 2 + 60))
             {
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
@@ -200,6 +217,7 @@ int main()
                         for (int j = 0; j < boxList[i].size(); j++)
                         {
                             boxList[i][j].isEmpty = true;
+                            boxList[i][j].isVisited = false;
                             start = {};
                             finish = {};
                             isStartSelected = false;
@@ -209,7 +227,7 @@ int main()
                 }
             }
 
-
+            // play button
             if (mo.x >= boxSize * 65 && mo.y >= boxSize * 2 && mo.x <= (boxSize * 65 + 100) && mo.y <= (boxSize * 2 + 60))
             {
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
