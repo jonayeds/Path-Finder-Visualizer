@@ -151,6 +151,10 @@ public:
         }
         return time;
     }
+
+    void applyDijkstra(){
+        cout << "Dijkstra apply";
+    }
 };
 
 int main()
@@ -203,6 +207,9 @@ int main()
     }
 
     string time = "0";
+
+    string algorithm = "dfs";
+
     while (win.isOpen())
     {
         mo = Mouse::getPosition(win);
@@ -326,11 +333,18 @@ int main()
             {
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
                 {
-                    clock.restart(); // Restart the clock when BFS starts
-                    time = algo->applyBFS(txt, clock, time, win, box, boxSize, isStartSelected, isFinishSelected);
+                    cout << algorithm;
+                    if(algorithm == "dfs"){
+                        clock.restart(); // Restart the clock when BFS starts
+                        time = algo->applyBFS(txt, clock, time, win, box, boxSize, isStartSelected, isFinishSelected);
+                    }else{
+                        cout << "djk";
+                        algo->applyDijkstra();
+                    }
                 }
             }
 
+            button.setFillColor(Color(50, 73, 97));
             button.setSize(Vector2f(100, 60));
             button.setPosition(Vector2f(boxSize * 55, boxSize * 2));
             txt.setPosition(Vector2f(boxSize * 55 + 25, boxSize * 2 + 15));
@@ -349,15 +363,39 @@ int main()
             button.setPosition(Vector2f(boxSize * 57, boxSize * 10));
             txt.setPosition(Vector2f(boxSize * 57 + 25, boxSize * 10 + 15));
             txt.setString("DFS");
+            if(algorithm == "dfs"){
+                button.setFillColor(Color(37, 148, 188));
+            }else{
+                button.setFillColor(Color(50, 73, 97));
+            }
             win.draw(button);
             win.draw(txt);
+            if (mo.x >= boxSize * 57 && mo.y >= boxSize * 10 && mo.x <= (boxSize * 65 + 200) && mo.y <= (boxSize * 10 + 60))
+            {
+                if (Mouse::isButtonPressed(Mouse::Button::Left))
+                {
+                    algorithm = "dfs";
+                }
+            }
 
 
+            if(algorithm == "dijkstra"){
+                button.setFillColor(Color(37, 148, 188));
+            }else{
+                button.setFillColor(Color(50, 73, 97));
+            }
             button.setPosition(Vector2f(boxSize * 57, boxSize * 15));
             txt.setPosition(Vector2f(boxSize * 57 + 25, boxSize * 15 + 15));
             txt.setString("DIJKSTRA");
             win.draw(button);
             win.draw(txt);
+            if (mo.x >= boxSize * 57 && mo.y >= boxSize * 15 && mo.x <= (boxSize * 65 + 200) && mo.y <= (boxSize * 15 + 60))
+            {
+                if (Mouse::isButtonPressed(Mouse::Button::Left))
+                {
+                    algorithm = "dijkstra";
+                }
+            }
             
             txt.setString("DFS :");
             txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 20 + 15));
@@ -365,6 +403,7 @@ int main()
             txt.setString(time);
             txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
             win.draw(txt);
+            
 
             win.display();
         }
