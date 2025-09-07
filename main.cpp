@@ -62,6 +62,9 @@ void drawWindow(RectangleShape box, bool isStartSelected, bool isFinishSelected,
             }
         }
     }
+    txt.setString("DFS :");
+    txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 20 + 15));
+    win.draw(txt);
     txt.setString(time);
     txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
     win.draw(txt);
@@ -114,11 +117,11 @@ public:
                     boxList[nextRow][nextCol].parentRow = current.row;
                     boxList[nextRow][nextCol].parentCol = current.col;
                     q.push(boxList[nextRow][nextCol]);
-                    
+
                     // Update time during BFS execution
                     float timeCount = clock.getElapsedTime().asSeconds();
                     time = to_string(timeCount);
-                    
+
                     win.clear();
                     drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize);
                     win.display();
@@ -138,7 +141,7 @@ public:
                 path.push_back(current);
                 boxList[current.row][current.col].isPath = true;
                 current = boxList[current.parentRow][current.parentCol];
-                
+
                 win.clear();
                 drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize);
                 win.display();
@@ -175,8 +178,9 @@ int main()
     Text txt(fnt);
     if (fnt.openFromFile("/Users/sajjad/University/SFML/Path-Finder/fonts/primary.ttf"))
     {
-        txt.setCharacterSize(24);
-        txt.setOutlineThickness(1);
+        txt.setCharacterSize(28);
+        txt.setOutlineThickness(0.5);
+        txt.setLetterSpacing(1.8);
         txt.setFillColor(Color::White);
         txt.setOutlineColor(Color::White);
     }
@@ -212,7 +216,7 @@ int main()
             else if (event->is<Event::Resized>())
             {
                 sf::Vector2f position(0.f, 0.f);
-                sf::Vector2f size( win.getSize().x, win.getSize().y);
+                sf::Vector2f size(win.getSize().x, win.getSize().y);
                 sf::FloatRect visibleArea(position, size);
                 win.setView(View(visibleArea));
             }
@@ -327,6 +331,7 @@ int main()
                 }
             }
 
+            button.setSize(Vector2f(100, 60));
             button.setPosition(Vector2f(boxSize * 55, boxSize * 2));
             txt.setPosition(Vector2f(boxSize * 55 + 25, boxSize * 2 + 15));
             txt.setString("Reset");
@@ -339,6 +344,24 @@ int main()
             win.draw(button);
             win.draw(txt);
 
+            // Algorithm selecter
+            button.setSize(Vector2f(200,60));
+            button.setPosition(Vector2f(boxSize * 57, boxSize * 10));
+            txt.setPosition(Vector2f(boxSize * 57 + 25, boxSize * 10 + 15));
+            txt.setString("DFS");
+            win.draw(button);
+            win.draw(txt);
+
+
+            button.setPosition(Vector2f(boxSize * 57, boxSize * 15));
+            txt.setPosition(Vector2f(boxSize * 57 + 25, boxSize * 15 + 15));
+            txt.setString("DIJKSTRA");
+            win.draw(button);
+            win.draw(txt);
+            
+            txt.setString("DFS :");
+            txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 20 + 15));
+            win.draw(txt);
             txt.setString(time);
             txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
             win.draw(txt);
