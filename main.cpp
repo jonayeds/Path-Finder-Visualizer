@@ -21,6 +21,51 @@ vector<vector<Box>> boxList(40);
 Box start;
 Box finish;
 
+void drawWindow(RectangleShape box, bool isStartSelected, bool isFinishSelected, RenderWindow &win, string time, Text txt, int boxSize)
+{
+    for (int r = 0; r < 40; r++)
+    {
+        for (int c = 0; c < 50; c++)
+        {
+            box.setPosition(Vector2f(boxList[r][c].x, boxList[r][c].y));
+            if (boxList[r][c].x == start.x && boxList[r][c].y == start.y && isStartSelected)
+            {
+                box.setFillColor(Color::Green);
+                win.draw(box);
+                continue;
+            }
+            else if (boxList[r][c].x == finish.x && boxList[r][c].y == finish.y && isFinishSelected)
+            {
+                box.setFillColor(Color::Red);
+                win.draw(box);
+                continue;
+            }
+            if (!boxList[r][c].isEmpty)
+            {
+                box.setFillColor(Color(50, 73, 97));
+                win.draw(box);
+            }
+            else if (boxList[r][c].isVisited && boxList[r][c].isPath)
+            {
+                box.setFillColor(Color::Yellow);
+                win.draw(box);
+            }
+            else if (boxList[r][c].isVisited)
+            {
+                box.setFillColor(Color(75, 156, 237));
+                win.draw(box);
+            }
+            else
+            {
+                box.setFillColor(Color::White);
+                win.draw(box);
+            }
+        }
+    }
+    txt.setString(time);
+    txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
+    win.draw(txt);
+}
 
 class Algorithms
 {
@@ -32,7 +77,6 @@ public:
         int rows = boxList.size();
         int cols = boxList[0].size();
         queue<Box> q;
-        // vector<vector<bool>> visited(rows, vector<bool>(cols, false));
 
         int nextRows[] = {1, -1, 0, 0};
         int nextCols[] = {0, 0, 1, -1};
@@ -47,8 +91,6 @@ public:
             Box current = q.front();
             q.pop();
 
-
-
             if (current.row == finish.row && current.col == finish.col)
             {
                 finish = current;
@@ -61,59 +103,26 @@ public:
                 int nextRow = current.row + nextRows[i];
                 int nextCol = current.col + nextCols[i];
 
-                if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) {
+                if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols)
+                {
                     continue;
                 }
-                
+
                 if (boxList[nextRow][nextCol].isEmpty && !boxList[nextRow][nextCol].isVisited)
                 {
                     boxList[nextRow][nextCol].isVisited = true;
                     boxList[nextRow][nextCol].parentRow = current.row;
                     boxList[nextRow][nextCol].parentCol = current.col;
                     q.push(boxList[nextRow][nextCol]);
-
-                    win.clear();
-                    for (int r = 0; r < 40; r++)
-                    {
-                        for (int c = 0; c < 50; c++)
-                        {
-                            box.setPosition(Vector2f(boxList[r][c].x, boxList[r][c].y));
-                            if (boxList[r][c].x == start.x && boxList[r][c].y == start.y && isStartSelected)
-                            {
-                                box.setFillColor(Color::Green);
-                                win.draw(box);
-                                continue;
-                            }
-                            else if (boxList[r][c].x == finish.x && boxList[r][c].y == finish.y && isFinishSelected)
-                            {
-                                box.setFillColor(Color::Red);
-                                win.draw(box);
-                                continue;
-                            }
-                            if (!boxList[r][c].isEmpty)
-                            {
-                                box.setFillColor(Color(50, 73, 97));
-                                win.draw(box);
-                            }
-                            else if (boxList[r][c].isVisited)
-                            {
-                                box.setFillColor(Color(75, 156, 237));
-                                win.draw(box);
-                            }
-                            else
-                            {
-                                box.setFillColor(Color::White);
-                                win.draw(box);
-                            }
-                        }
-                    }
+                    
+                    // Update time during BFS execution
                     float timeCount = clock.getElapsedTime().asSeconds();
                     time = to_string(timeCount);
-                    txt.setString(time);
-                    txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
-                    win.draw(txt);
+                    
+                    win.clear();
+                    drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize);
                     win.display();
-                    sf::sleep(sf::milliseconds(2)); 
+                    sf::sleep(sf::milliseconds(2));
                 }
             }
         }
@@ -129,50 +138,9 @@ public:
                 path.push_back(current);
                 boxList[current.row][current.col].isPath = true;
                 current = boxList[current.parentRow][current.parentCol];
-                cout << current.parentRow << " | " << current.parentCol << endl;
+                
                 win.clear();
-                for (int r = 0; r < 40; r++)
-                {
-                    for (int c = 0; c < 50; c++)
-                    {
-                        box.setPosition(Vector2f(boxList[r][c].x, boxList[r][c].y));
-                        if (boxList[r][c].x == start.x && boxList[r][c].y == start.y && isStartSelected)
-                        {
-                            box.setFillColor(Color::Green);
-                            win.draw(box);
-                            continue;
-                        }
-                        else if (boxList[r][c].x == finish.x && boxList[r][c].y == finish.y && isFinishSelected)
-                        {
-                            box.setFillColor(Color::Red);
-                            win.draw(box);
-                            continue;
-                        }
-                        if (!boxList[r][c].isEmpty)
-                        {
-                            box.setFillColor(Color(50, 73, 97));
-                            win.draw(box);
-                        }
-                        else if (boxList[r][c].isVisited && boxList[r][c].isPath)
-                        {
-                            box.setFillColor(Color::Yellow);
-                            win.draw(box);
-                        }
-                        else if (boxList[r][c].isVisited)
-                        {
-                            box.setFillColor(Color(75, 156, 237));
-                            win.draw(box);
-                        }
-                        else
-                        {
-                            box.setFillColor(Color::White);
-                            win.draw(box);
-                        }
-                    }
-                }
-                txt.setString(time);
-                txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
-                win.draw(txt);
+                drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize);
                 win.display();
                 sf::sleep(sf::milliseconds(100)); // Slower delay for path visualization
             }
@@ -241,14 +209,21 @@ int main()
             {
                 win.close();
             }
+            else if (event->is<Event::Resized>())
+            {
+                sf::Vector2f position(0.f, 0.f);
+                sf::Vector2f size( win.getSize().x, win.getSize().y);
+                sf::FloatRect visibleArea(position, size);
+                win.setView(View(visibleArea));
+            }
             win.clear();
-            
+
             // Handle mouse interactions with existing boxes
             for (int i = 0; i < 40; i++)
             {
                 for (int j = 0; j < 50; j++)
                 {
-                    if (mo.x > boxList[i][j].x && mo.y > boxList[i][j].y && 
+                    if (mo.x > boxList[i][j].x && mo.y > boxList[i][j].y &&
                         mo.x < boxList[i][j].x + boxSize && mo.y < boxList[i][j].y + boxSize)
                     {
                         if (Mouse::isButtonPressed(Mouse::Button::Left))
@@ -341,12 +316,13 @@ int main()
                 }
             }
 
-            Clock clock;
+            Clock clock; // Move clock creation here, before the button check
             // play button
             if (mo.x >= boxSize * 65 && mo.y >= boxSize * 2 && mo.x <= (boxSize * 65 + 100) && mo.y <= (boxSize * 2 + 60))
             {
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
                 {
+                    clock.restart(); // Restart the clock when BFS starts
                     time = algo->applyBFS(txt, clock, time, win, box, boxSize, isStartSelected, isFinishSelected);
                 }
             }
