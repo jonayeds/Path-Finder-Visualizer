@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <stack>
 using namespace std;
 using namespace sf;
 
@@ -14,6 +15,7 @@ struct Box
     int col;
     bool isVisited;
     bool isPath;
+    bool isExplored;
 };
 
 vector<vector<Box>> boxList(40);
@@ -23,6 +25,7 @@ Box finish;
 
 string bfsLength = "0";
 string dijkstraLength = "0";
+string dfsLength = "0";
 
 void drawWindow(RectangleShape box, bool isStartSelected, bool isFinishSelected, RenderWindow &win, string time, Text txt, int boxSize, string algo)
 {
@@ -57,6 +60,10 @@ void drawWindow(RectangleShape box, bool isStartSelected, bool isFinishSelected,
             {
                 box.setFillColor(Color(75, 156, 237));
                 win.draw(box);
+            }
+            else if (boxList[r][c].isExplored)
+            {
+                box.setFillColor(Color::Cyan);
             }
             else
             {
@@ -291,8 +298,99 @@ public:
     }
 
 public:
-    string applyDFS()
+    string applyDFS(Text txt, Clock clock, string time, RenderWindow &win, RectangleShape &box, int boxSize, bool isStartSelected, bool isFinishSelected)
     {
+        int rows = boxList.size();
+        int cols = boxList[0].size();
+        stack<Box> s; // Stack for DFS (LIFO - Last In First Out)
+
+        int nextRows[] = {1, -1, 0, 0};
+        int nextCols[] = {0, 0, 1, -1};
+
+        s.push(start);
+        boxList[start.row][start.col].isVisited = true;
+        boxList[start.row][start.col].parentRow = -1;
+        boxList[start.row][start.col].parentCol = -1;
+
+        bool isFound = false;
+
+        while (!s.empty() && s.size() < 2000)
+        {
+            Box current = s.top();
+             // Always pop the current node first
+
+            if (current.row == finish.row && current.col == finish.col)
+            {
+                float finalTimeCount = clock.getElapsedTime().asSeconds();
+                time = to_string(finalTimeCount);
+                isFound = true;
+                finish.parentCol = current.parentCol;
+                finish.parentRow = current.parentRow;
+                break;
+            }
+
+            // Look for an unvisited neighbor
+            bool foundNeighbor = false;
+            for (int i = 0; i < 4; i++)
+            {
+                int nextRow = current.row + nextRows[i];
+                int nextCol = current.col + nextCols[i];
+                
+                if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols)
+                {
+                    continue;
+                }
+
+                if (boxList[nextRow][nextCol].isEmpty && !boxList[nextRow][nextCol].isVisited)
+                {
+                    boxList[nextRow][nextCol].isVisited = true;
+                    boxList[nextRow][nextCol].parentRow = current.row;
+                    boxList[nextRow][nextCol].parentCol = current.col;
+                    s.push(boxList[nextRow][nextCol]);
+                    foundNeighbor = true;
+                    
+                    // Update time during DFS execution
+                    float timeCount = clock.getElapsedTime().asSeconds();
+                    time = to_string(timeCount);
+
+                    win.clear();
+                    drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize, "DFS");
+                    win.display();
+                    sf::sleep(sf::milliseconds(2));
+                    break; // Only explore one neighbor at a time for DFS
+                }
+            }
+            
+            if (!foundNeighbor)
+            {
+                cout << "Backtracking from row:" << current.row << " col:" << current.col << " | Stack size: " << s.size() << endl;
+                s.pop();
+            }
+        }
+
+        // Reconstruct path if found
+        if (isFound)
+        {
+            vector<Box> path;
+            Box current = finish;
+            cout << "Current r:"<< current.row << " | c:" << current.col<< "Parent r:" << current.parentRow << " | c:" << current.parentCol<< endl;
+            while (current.parentRow != -1 && path.size() < 2000)
+            {
+                path.push_back(current);
+                boxList[current.row][current.col].isPath = true;
+                current = boxList[current.parentRow][current.parentCol];
+                win.clear();
+                drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize, "DFS");
+                win.display();
+                sf::sleep(sf::milliseconds(10));
+            }
+            path.push_back(start);
+            dfsLength = to_string(path.size() - 1);
+        }else{
+            dfsLength = "N/A";
+        }
+
+        return time;
     }
 };
 
@@ -347,6 +445,7 @@ int main()
 
     string bfsTime = "0";
     string dijkstraTime = "0";
+    string dfsTime = "0";
 
     string algorithm = "bfs";
 
@@ -458,6 +557,7 @@ int main()
                             boxList[i][j].isEmpty = true;
                             boxList[i][j].isVisited = false;
                             boxList[i][j].isPath = false;
+                            boxList[i][j].isExplored = false;
                             start = {};
                             finish = {};
                             isStartSelected = false;
@@ -478,10 +578,15 @@ int main()
                         clock.restart();
                         bfsTime = algo->applyBFS(txt, clock, bfsTime, win, box, boxSize, isStartSelected, isFinishSelected);
                     }
-                    else
+                    else if (algorithm == "dijkstra")
                     {
                         clock.restart();
                         dijkstraTime = algo->applyDijkstra(txt, clock, dijkstraTime, win, box, boxSize, isStartSelected, isFinishSelected);
+                    }
+                    else if (algorithm == "dfs")
+                    {
+                        clock.restart();
+                        dfsTime = algo->applyDFS(txt, clock, dfsTime, win, box, boxSize, isStartSelected, isFinishSelected);
                     }
                 }
             }
@@ -531,7 +636,6 @@ int main()
                     }
                 }
             }
-
 
             // BFS selector
             button.setPosition(Vector2f(boxSize * 57, boxSize * 15));
@@ -594,16 +698,16 @@ int main()
             }
 
             // BFS
-            txt.setString("bfs :");
+            txt.setString("dfs :");
             txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 25 + 15));
             win.draw(txt);
-            txt.setString(bfsTime);
+            txt.setString(dfsTime);
             txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 25 + 15));
             win.draw(txt);
             txt.setString("Length :");
             txt.setPosition(Vector2f(boxSize * 70 + 25, boxSize * 25 + 15));
             win.draw(txt);
-            txt.setString(bfsLength);
+            txt.setString(dfsLength);
             txt.setPosition(Vector2f(boxSize * 78 + 25, boxSize * 25 + 15));
             win.draw(txt);
 
@@ -615,7 +719,7 @@ int main()
             txt.setPosition(Vector2f(boxSize * 60 + 75, boxSize * 28 + 15));
             win.draw(txt);
             txt.setString("Length :");
-            txt.setPosition(Vector2f(boxSize * 72 + 25, boxSize * 28+ 15));
+            txt.setPosition(Vector2f(boxSize * 72 + 25, boxSize * 28 + 15));
             win.draw(txt);
             txt.setString(bfsLength);
             txt.setPosition(Vector2f(boxSize * 78 + 75, boxSize * 28 + 15));
