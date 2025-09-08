@@ -21,7 +21,10 @@ vector<vector<Box>> boxList(40);
 Box start;
 Box finish;
 
-void drawWindow(RectangleShape box, bool isStartSelected, bool isFinishSelected, RenderWindow &win, string time, Text txt, int boxSize)
+string bfsLength = "0";
+string dijkstraLength = "0";
+
+void drawWindow(RectangleShape box, bool isStartSelected, bool isFinishSelected, RenderWindow &win, string time, Text txt, int boxSize, string algo)
 {
     for (int r = 0; r < 40; r++)
     {
@@ -62,11 +65,18 @@ void drawWindow(RectangleShape box, bool isStartSelected, bool isFinishSelected,
             }
         }
     }
-    txt.setString("DFS :");
+    txt.setString(algo + " :");
     txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 20 + 15));
     win.draw(txt);
     txt.setString(time);
-    txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
+    if (algo == "bfs")
+    {
+        txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
+    }
+    else
+    {
+        txt.setPosition(Vector2f(boxSize * 61 + 65, boxSize * 20 + 15));
+    }
     win.draw(txt);
 }
 
@@ -123,7 +133,7 @@ public:
                     time = to_string(timeCount);
 
                     win.clear();
-                    drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize);
+                    drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize, "BFS");
                     win.display();
                     sf::sleep(sf::milliseconds(2));
                 }
@@ -143,23 +153,152 @@ public:
                 current = boxList[current.parentRow][current.parentCol];
 
                 win.clear();
-                drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize);
+                drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize, "BFS");
                 win.display();
                 sf::sleep(sf::milliseconds(100)); // Slower delay for path visualization
             }
             path.push_back(start);
+            bfsLength = to_string(path.size() - 1);
         }
         return time;
     }
 
-    void applyDijkstra(){
-        cout << "Dijkstra apply";
+public:
+    string applyDijkstra(Text txt, Clock clock, string time, RenderWindow &win, RectangleShape &box, int boxSize, bool isStartSelected, bool isFinishSelected)
+    {
+        struct Compare
+        {
+            bool operator()(const vector<int> &a, const vector<int> &b)
+            {
+                return a[0] > b[0]; // Min-heap based on distance
+            }
+        };
+
+        priority_queue<vector<int>, vector<vector<int>>, Compare> pq;
+        vector<vector<int>> distances(boxList.size(), vector<int>(boxList[0].size(), INT_MAX));
+        vector<vector<bool>> visited(boxList.size(), vector<bool>(boxList[0].size(), false));
+
+        // Initialize starting node
+        distances[start.row][start.col] = 0;
+        boxList[start.row][start.col].parentRow = -1; // Set start node parent
+        boxList[start.row][start.col].parentCol = -1;
+        pq.push({0, start.row, start.col}); // {distance, row, col}
+
+        int nextRows[] = {1, -1, 0, 0};
+        int nextCols[] = {0, 0, 1, -1};
+
+        bool isFound = false;
+
+        while (!pq.empty())
+        {
+            vector<int> current = pq.top();
+            pq.pop();
+
+            int currentDist = current[0];
+            int currentRow = current[1];
+            int currentCol = current[2];
+
+            // Skip if already visited with a better distance
+            if (visited[currentRow][currentCol])
+            {
+                continue;
+            }
+
+            // Mark as visited and update visualization
+            visited[currentRow][currentCol] = true;
+            boxList[currentRow][currentCol].isVisited = true;
+            // Don't reset parent information here - we need it for path reconstruction!
+
+            // Check if we reached the finish
+            if (currentRow == finish.row && currentCol == finish.col)
+            {
+                isFound = true;
+                break;
+            }
+
+            // Explore neighbors
+            for (int i = 0; i < 4; i++)
+            {
+                int nextRow = currentRow + nextRows[i];
+                int nextCol = currentCol + nextCols[i];
+
+                // Bounds checking
+                if (nextRow < 0 || nextRow >= boxList.size() ||
+                    nextCol < 0 || nextCol >= boxList[0].size())
+                {
+                    continue;
+                }
+
+                // Skip if not empty, already visited, or is an obstacle
+                if (!boxList[nextRow][nextCol].isEmpty || visited[nextRow][nextCol])
+                {
+                    continue;
+                }
+
+                int newDistance = currentDist + 1; // All edges have weight 1
+
+                // If we found a shorter path to this neighbor
+                if (newDistance < distances[nextRow][nextCol])
+                {
+                    distances[nextRow][nextCol] = newDistance;
+                    boxList[nextRow][nextCol].parentRow = currentRow;
+                    boxList[nextRow][nextCol].parentCol = currentCol;
+                    pq.push({newDistance, nextRow, nextCol});
+                }
+            }
+
+            // Update time and visualize
+            float timeCount = clock.getElapsedTime().asSeconds();
+            time = to_string(timeCount);
+
+            win.clear();
+            drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize, "Dijkstra");
+            win.display();
+            sf::sleep(sf::milliseconds(2)); // Slightly slower than BFS for better visualization
+        }
+
+        // Reconstruct path if found
+        if (isFound)
+        {
+            vector<Box> path;
+            int currentRow = finish.row;
+            int currentCol = finish.col;
+
+            while (boxList[currentRow][currentCol].parentRow != -1 && path.size() < 2000)
+            {
+                path.push_back(boxList[currentRow][currentCol]);
+                boxList[currentRow][currentCol].isPath = true;
+
+                int parentRow = boxList[currentRow][currentCol].parentRow;
+                int parentCol = boxList[currentRow][currentCol].parentCol;
+                currentRow = parentRow;
+                currentCol = parentCol;
+
+                // Update time and visualize path
+                float timeCount = clock.getElapsedTime().asSeconds();
+                time = to_string(timeCount);
+
+                win.clear();
+                drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize, "Dijkstra");
+                win.display();
+                sf::sleep(sf::milliseconds(100));
+            }
+            path.push_back(start);
+            dijkstraLength = to_string(distances[finish.row][finish.col]);
+        }
+
+        return time;
+    }
+
+public:
+    string applyDFS()
+    {
     }
 };
 
 int main()
 {
-    RenderWindow win(VideoMode({1200, 800}), "Path Finder");
+    RenderWindow win(VideoMode({1300, 800}), "Path Finder");
     Image icon;
     if (icon.loadFromFile("/Users/sajjad/University/SFML/Path-Finder/images/icon.jpg"))
     {
@@ -206,9 +345,10 @@ int main()
         }
     }
 
-    string time = "0";
+    string bfsTime = "0";
+    string dijkstraTime = "0";
 
-    string algorithm = "dfs";
+    string algorithm = "bfs";
 
     while (win.isOpen())
     {
@@ -333,13 +473,15 @@ int main()
             {
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
                 {
-                    cout << algorithm;
-                    if(algorithm == "dfs"){
-                        clock.restart(); // Restart the clock when BFS starts
-                        time = algo->applyBFS(txt, clock, time, win, box, boxSize, isStartSelected, isFinishSelected);
-                    }else{
-                        cout << "djk";
-                        algo->applyDijkstra();
+                    if (algorithm == "bfs")
+                    {
+                        clock.restart();
+                        bfsTime = algo->applyBFS(txt, clock, bfsTime, win, box, boxSize, isStartSelected, isFinishSelected);
+                    }
+                    else
+                    {
+                        clock.restart();
+                        dijkstraTime = algo->applyDijkstra(txt, clock, dijkstraTime, win, box, boxSize, isStartSelected, isFinishSelected);
                     }
                 }
             }
@@ -358,14 +500,18 @@ int main()
             win.draw(button);
             win.draw(txt);
 
-            // Algorithm selecter
-            button.setSize(Vector2f(200,60));
+            // Algorithm selector
+            // DFS Selector
+            button.setSize(Vector2f(200, 60));
             button.setPosition(Vector2f(boxSize * 57, boxSize * 10));
             txt.setPosition(Vector2f(boxSize * 57 + 25, boxSize * 10 + 15));
             txt.setString("DFS");
-            if(algorithm == "dfs"){
+            if (algorithm == "dfs")
+            {
                 button.setFillColor(Color(37, 148, 188));
-            }else{
+            }
+            else
+            {
                 button.setFillColor(Color(50, 73, 97));
             }
             win.draw(button);
@@ -375,35 +521,119 @@ int main()
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
                 {
                     algorithm = "dfs";
+                    for (int i = 0; i < boxList.size(); i++)
+                    {
+                        for (int j = 0; j < boxList[i].size(); j++)
+                        {
+                            boxList[i][j].isVisited = false;
+                            boxList[i][j].isPath = false;
+                        }
+                    }
                 }
             }
 
 
-            if(algorithm == "dijkstra"){
-                button.setFillColor(Color(37, 148, 188));
-            }else{
-                button.setFillColor(Color(50, 73, 97));
-            }
+            // BFS selector
             button.setPosition(Vector2f(boxSize * 57, boxSize * 15));
             txt.setPosition(Vector2f(boxSize * 57 + 25, boxSize * 15 + 15));
-            txt.setString("DIJKSTRA");
+            txt.setString("BFS");
+            if (algorithm == "bfs")
+            {
+                button.setFillColor(Color(37, 148, 188));
+            }
+            else
+            {
+                button.setFillColor(Color(50, 73, 97));
+            }
             win.draw(button);
             win.draw(txt);
             if (mo.x >= boxSize * 57 && mo.y >= boxSize * 15 && mo.x <= (boxSize * 65 + 200) && mo.y <= (boxSize * 15 + 60))
             {
                 if (Mouse::isButtonPressed(Mouse::Button::Left))
                 {
-                    algorithm = "dijkstra";
+                    algorithm = "bfs";
+                    for (int i = 0; i < boxList.size(); i++)
+                    {
+                        for (int j = 0; j < boxList[i].size(); j++)
+                        {
+                            boxList[i][j].isVisited = false;
+                            boxList[i][j].isPath = false;
+                        }
+                    }
                 }
             }
-            
-            txt.setString("DFS :");
-            txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 20 + 15));
+
+            // Dijkstra Selector
+            if (algorithm == "dijkstra")
+            {
+                button.setFillColor(Color(37, 148, 188));
+            }
+            else
+            {
+                button.setFillColor(Color(50, 73, 97));
+            }
+            button.setPosition(Vector2f(boxSize * 57, boxSize * 20));
+            txt.setPosition(Vector2f(boxSize * 57 + 25, boxSize * 20 + 15));
+            txt.setString("DIJKSTRA");
+            win.draw(button);
             win.draw(txt);
-            txt.setString(time);
-            txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 20 + 15));
+            if (mo.x >= boxSize * 57 && mo.y >= boxSize * 20 && mo.x <= (boxSize * 65 + 200) && mo.y <= (boxSize * 20 + 60))
+            {
+                if (Mouse::isButtonPressed(Mouse::Button::Left))
+                {
+                    algorithm = "dijkstra";
+                    for (int i = 0; i < boxList.size(); i++)
+                    {
+                        for (int j = 0; j < boxList[i].size(); j++)
+                        {
+                            boxList[i][j].isVisited = false;
+                            boxList[i][j].isPath = false;
+                        }
+                    }
+                }
+            }
+
+            // BFS
+            txt.setString("bfs :");
+            txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 25 + 15));
             win.draw(txt);
-            
+            txt.setString(bfsTime);
+            txt.setPosition(Vector2f(boxSize * 60 + 25, boxSize * 25 + 15));
+            win.draw(txt);
+            txt.setString("Length :");
+            txt.setPosition(Vector2f(boxSize * 70 + 25, boxSize * 25 + 15));
+            win.draw(txt);
+            txt.setString(bfsLength);
+            txt.setPosition(Vector2f(boxSize * 78 + 25, boxSize * 25 + 15));
+            win.draw(txt);
+
+            // DFS
+            txt.setString("dfs :");
+            txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 28 + 15));
+            win.draw(txt);
+            txt.setString(bfsTime);
+            txt.setPosition(Vector2f(boxSize * 60 + 75, boxSize * 28 + 15));
+            win.draw(txt);
+            txt.setString("Length :");
+            txt.setPosition(Vector2f(boxSize * 72 + 25, boxSize * 28+ 15));
+            win.draw(txt);
+            txt.setString(bfsLength);
+            txt.setPosition(Vector2f(boxSize * 78 + 75, boxSize * 28 + 15));
+            win.draw(txt);
+
+            // Dijkstra
+            txt.setString("Dijkstra :");
+            txt.setPosition(Vector2f(boxSize * 60 - 40, boxSize * 31 + 15));
+            win.draw(txt);
+            txt.setString(dijkstraTime);
+            txt.setPosition(Vector2f(boxSize * 60 + 75, boxSize * 31 + 15));
+            win.draw(txt);
+            txt.setString("Length :");
+            txt.setPosition(Vector2f(boxSize * 72 + 25, boxSize * 31 + 15));
+            win.draw(txt);
+            txt.setString(dijkstraLength);
+            txt.setPosition(Vector2f(boxSize * 78 + 75, boxSize * 31 + 15));
+            win.draw(txt);
 
             win.display();
         }
