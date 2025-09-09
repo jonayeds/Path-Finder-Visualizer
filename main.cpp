@@ -166,6 +166,8 @@ public:
             }
             path.push_back(start);
             bfsLength = to_string(path.size() - 1);
+        }else{
+            bfsLength = "N/A";
         }
         return time;
     }
@@ -281,10 +283,6 @@ public:
                 currentRow = parentRow;
                 currentCol = parentCol;
 
-                // Update time and visualize path
-                float timeCount = clock.getElapsedTime().asSeconds();
-                time = to_string(timeCount);
-
                 win.clear();
                 drawWindow(box, isStartSelected, isFinishSelected, win, time, txt, boxSize, "Dijkstra");
                 win.display();
@@ -292,6 +290,8 @@ public:
             }
             path.push_back(start);
             dijkstraLength = to_string(distances[finish.row][finish.col]);
+        }else{
+            dijkstraLength = "N/A";
         }
 
         return time;
